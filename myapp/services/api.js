@@ -1,13 +1,26 @@
 import axios from "axios";
 import { getItem } from "../app/utils/storage";
+import { getApiUrl } from "./config";
 
-const API = "http://192.168.73.245:4000/api";
+let API_URL = "http://localhost:3000/api";
+
+export const initApi = async () => {
+  API_URL = await getApiUrl();
+  console.log("📡 API Service using:", API_URL);
+};
 
 const api = axios.create({
-  baseURL: API,
+  baseURL: API_URL,
 });
 
+// Update baseURL dynamically
 api.interceptors.request.use(async (config) => {
+  // Ensure API_URL is set
+  if (!API_URL || API_URL === "http://localhost:3000/api") {
+    API_URL = await getApiUrl();
+    config.baseURL = API_URL;
+  }
+  
   const token = await getItem("token");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -82,7 +95,7 @@ export const getAdminStats = async () => {
   return res.data.data || res.data;
 };
 
-// ============ 🆕 SENSOR / IOT DATA ============
+// ============ SENSOR / IOT DATA ============
 export const getSensorReadings = async (limit = 50) => {
   try {
     const res = await api.get(`/sensors?limit=${limit}`);
